@@ -18,8 +18,8 @@ from pydantic import BaseModel, ValidationError, field_validator
 from config import (
     LLM_BACKEND, LLM_MAX_RETRIES,
     OLLAMA_BASE_URL, OLLAMA_MODEL,
-    GEMINI_API_KEY,
-    MAX_INPUT_CHARS_OLLAMA, MAX_INPUT_CHARS_GEMINI,
+    GEMINI_API_KEY, GROQ_API_KEY, GROQ_MODEL,
+    MAX_INPUT_CHARS_OLLAMA, MAX_INPUT_CHARS_GEMINI, MAX_INPUT_CHARS_GROQ,
     VRAM_COOLDOWN_SECONDS, ENABLE_GC_CLEANUP,
 )
 
@@ -118,6 +118,27 @@ def _call_gemini(text: str) -> str:
         return resp.json()["candidates"][0]["content"]["parts"][0]["text"]
 
 
+def _call_groq(text: str) -> str:
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": GROQ_MODEL,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": USER_TEMPLATE.format(text=text[:MAX_INPUT_CHARS_GROQ])}
+        ],
+        "temperature": 0.1,
+        "response_format": {"type": "json_object"} # Bật JSON mode của Groq
+    }
+    with httpx.Client(timeout=30) as client:
+        resp = client.post(url, headers=headers, json=payload)
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"]
+
+
 def _extract_json(raw: str) -> str:
     """
     Trích xuất JSON object đầu tiên từ output LLM.
@@ -173,7 +194,12 @@ def summarize(raw_text: str) -> Optional[ArticleSummary]:
     Gọi LLM, parse + validate JSON.
     Retry tối đa LLM_MAX_RETRIES lần.
     """
-    call_fn = _call_ollama if LLM_BACKEND == "ollama" else _call_gemini
+    if LLM_BACKEND == "ollama":
+        call_fn = _call_ollama
+    elif LLM_BACKEND == "gemini":
+        call_fn = _call_gemini
+    else:
+        call_fn = _call_groq
 
     for attempt in range(1, LLM_MAX_RETRIES + 1):
         try:

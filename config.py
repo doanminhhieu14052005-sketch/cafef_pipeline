@@ -16,7 +16,7 @@ CAFEF_CATEGORIES = {
 }
 
 # Thêm biến cấu hình độ sâu mặc định
-SCRAPE_DEPTH = 3  # Ví dụ: Mặc định mỗi lần sẽ cào 3 trang bài báo cũ
+SCRAPE_DEPTH = 1  # Ví dụ: Mặc định mỗi lần sẽ cào 3 trang bài báo cũ
 
 REQUEST_DELAY = (1.5, 3.0)  # seconds, random uniform
 REQUEST_HEADERS = {
@@ -32,10 +32,12 @@ MONGO_DB = "cafef_news"
 MONGO_COLLECTION = "articles"
 
 # === LLM ===
-LLM_BACKEND = os.getenv("LLM_BACKEND", "ollama")  # "ollama" | "gemini"
+LLM_BACKEND = os.getenv("LLM_BACKEND", "groq")  # "ollama" | "gemini" | "groq"
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
 LLM_MAX_RETRIES = 3
 
 # === Pipeline ===
@@ -45,6 +47,7 @@ BATCH_SIZE = 100  # Số bài xử lý AI mỗi lần chạy
 
 # === VRAM Protection ===
 MAX_INPUT_CHARS_OLLAMA = 3000   # Giới hạn chars gửi vào Ollama (tránh tràn VRAM)
-MAX_INPUT_CHARS_GEMINI = 6000   # Gemini có context window lớn hơn
+MAX_INPUT_CHARS_GEMINI = 12000   # Tăng nhẹ cho Gemini
+MAX_INPUT_CHARS_GROQ = 15000     # Groq thường có context window tốt
 VRAM_COOLDOWN_SECONDS = 30      # Thời gian chờ nếu gặp OOM error
 ENABLE_GC_CLEANUP = True        # Chạy gc.collect() sau mỗi bài summarize
