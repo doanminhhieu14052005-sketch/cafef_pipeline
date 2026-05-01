@@ -110,7 +110,7 @@ def _call_gemini(text: str) -> str:
             SYSTEM_PROMPT + "\n\n" +
             USER_TEMPLATE.format(text=text[:MAX_INPUT_CHARS_GEMINI])
         )}]}],
-        "generationConfig": {"temperature": 0.1, "maxOutputTokens": 512},
+        "generationConfig": {"temperature": 0.1, "maxOutputTokens": 2048},
     }
     with httpx.Client(timeout=30) as client:
         resp = client.post(url, json=payload)
@@ -182,13 +182,24 @@ def summarize(raw_text: str) -> Optional[ArticleSummary]:
             data = json.loads(json_str)
             result = ArticleSummary.model_validate(data)
             logger.info(f"Summarized OK (attempt {attempt})")
+            if LLM_BACKEND == "gemini":
+                time.sleep(5) # Giữ nhịp độ API (Limit: 15 RPM)
             return result
 
         except (json.JSONDecodeError, ValidationError) as e:
             logger.warning(f"Parse error attempt {attempt}: {e}")
+            if LLM_BACKEND == "gemini":
+                time.sleep(5) # Tránh gọi dồn dập khi retry
         except httpx.HTTPError as e:
             error_msg = str(e).lower()
             logger.error(f"LLM HTTP error attempt {attempt}: {e}")
+            
+            # Xử lý 429 Rate Limit
+            if hasattr(e, "response") and e.response is not None and e.response.status_code == 429:
+                logger.warning("⚠️ Bị giới hạn tốc độ API (429). Đang nghỉ 15s...")
+                time.sleep(15)
+                continue
+
             # Phát hiện OOM → chờ VRAM giải phóng rồi retry
             if "out of memory" in error_msg or "oom" in error_msg:
                 logger.warning(
