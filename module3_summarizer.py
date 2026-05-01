@@ -194,10 +194,11 @@ def summarize(raw_text: str) -> Optional[ArticleSummary]:
             error_msg = str(e).lower()
             logger.error(f"LLM HTTP error attempt {attempt}: {e}")
             
-            # Xử lý 429 Rate Limit
+            # Xử lý 429 Rate Limit bằng Exponential Backoff
             if hasattr(e, "response") and e.response is not None and e.response.status_code == 429:
-                logger.warning("⚠️ Bị giới hạn tốc độ API (429). Đang nghỉ 15s...")
-                time.sleep(15)
+                wait_time = 30 * attempt
+                logger.warning(f"⚠️ Bị giới hạn tốc độ API (429). Đang nghỉ {wait_time}s...")
+                time.sleep(wait_time)
                 continue
 
             # Phát hiện OOM → chờ VRAM giải phóng rồi retry
