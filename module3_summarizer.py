@@ -103,7 +103,7 @@ def _call_ollama(text: str) -> str:
 def _call_gemini(text: str) -> str:
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+        f"gemini-2.5-pro:generateContent?key={GEMINI_API_KEY}"
     )
     payload = {
         "contents": [{"parts": [{"text": (
@@ -182,14 +182,10 @@ def summarize(raw_text: str) -> Optional[ArticleSummary]:
             data = json.loads(json_str)
             result = ArticleSummary.model_validate(data)
             logger.info(f"Summarized OK (attempt {attempt})")
-            if LLM_BACKEND == "gemini":
-                time.sleep(5) # Giữ nhịp độ API (Limit: 15 RPM)
             return result
 
         except (json.JSONDecodeError, ValidationError) as e:
             logger.warning(f"Parse error attempt {attempt}: {e}")
-            if LLM_BACKEND == "gemini":
-                time.sleep(5) # Tránh gọi dồn dập khi retry
         except httpx.HTTPError as e:
             error_msg = str(e).lower()
             logger.error(f"LLM HTTP error attempt {attempt}: {e}")
