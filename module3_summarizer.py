@@ -103,7 +103,7 @@ def _call_ollama(text: str) -> str:
 def _call_gemini(text: str) -> str:
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+        f"gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
     )
     payload = {
         "contents": [{"parts": [{"text": (
