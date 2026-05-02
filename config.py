@@ -16,7 +16,7 @@ CAFEF_CATEGORIES = {
 }
 
 # Thêm biến cấu hình độ sâu mặc định
-SCRAPE_DEPTH = 1  # Ví dụ: Mặc định mỗi lần sẽ cào 3 trang bài báo cũ
+SCRAPE_DEPTH = 3  # Ví dụ: Mặc định mỗi lần sẽ cào 3 trang bài báo cũ
 
 REQUEST_DELAY = (1.5, 3.0)  # seconds, random uniform
 REQUEST_HEADERS = {
