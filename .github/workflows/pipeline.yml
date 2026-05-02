@@ -2,8 +2,8 @@ name: CafeF Pipeline
 
 on:
   schedule:
-    # Chạy lúc 00:00, 05:00, 11:00 UTC (Tương ứng 07:00, 12:00, 18:00 VN)
-    - cron: '0 0,5,11 * * *'
+    # Chạy lúc 00:25, 05:25, 11:25 UTC (Tương ứng 07:25, 12:25, 18:25 VN)
+    - cron: '25 0,5,11 * * *'
   workflow_dispatch: # Cho phép chạy thủ công bằng nút bấm trên GitHub
 
 jobs:
