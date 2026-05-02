@@ -40,6 +40,14 @@ class ArticleSummary(BaseModel):
     def uppercase_tickers(cls, v):
         return [t.upper().strip() for t in v if t.strip()]
 
+    @field_validator("key_metrics", mode="before")
+    @classmethod
+    def coerce_metrics(cls, v):
+        """Ép tất cả value trong key_metrics về str để tránh crash khi LLM trả số."""
+        if isinstance(v, dict):
+            return {str(k): str(val) for k, val in v.items()}
+        return v or {}
+
     @field_validator("summary", mode="before")
     @classmethod
     def process_summary(cls, v):
