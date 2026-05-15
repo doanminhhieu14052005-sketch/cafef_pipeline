@@ -37,7 +37,7 @@ NOISE_PATTERNS = [
     ]
 ]
 
-MIN_CONTENT_LENGTH = 200  # Bài quá ngắn → bỏ qua
+MIN_CONTENT_LENGTH = 500  # Tăng ngưỡng để loại bài ảnh/video chất lượng thấp
 
 
 def _clean_text(text: str) -> str:
@@ -98,13 +98,21 @@ def scrape_article(url: str) -> Optional[dict]:
     }
     Trả None nếu không lấy được nội dung.
     """
-    try:
-        resp = requests.get(url, headers=REQUEST_HEADERS, timeout=20)
-        resp.raise_for_status()
-        html = resp.text
-    except requests.RequestException as e:
-        logger.warning(f"Scrape failed {url}: {e}")
-        return None
+    # Retry với exponential backoff
+    html = None
+    for attempt in range(3):
+        try:
+            resp = requests.get(url, headers=REQUEST_HEADERS, timeout=20)
+            resp.raise_for_status()
+            html = resp.text
+            break
+        except requests.RequestException as e:
+            if attempt == 2:
+                logger.warning(f"Scrape failed after 3 attempts: {url}: {e}")
+                return None
+            wait = 2 ** attempt
+            logger.debug(f"Scrape retry {attempt+1}/3 for {url[:50]}, waiting {wait}s")
+            time.sleep(wait)
 
     # Thử BS4 trước (chính xác hơn với CafeF)
     text = _extract_with_bs4(html)
@@ -142,25 +150,28 @@ def scrape_batch(items: list[dict]) -> list[dict]:
 
 
 
-def process_pending_articles(items: list[dict], output_file="data/raw_articles.json"):
+def process_pending_articles(items: list[dict], output_dir="data"):
     """
     Streaming pipeline: Vừa cào, vừa summarize, vừa lưu DB từng bài.
     
     Luồng xử lý cho MỖI bài:
-      1. Scrape nội dung (Module 2)
-      2. AI Summarize (Module 3) — có VRAM protection
-      3. Lưu vào MongoDB (Module 4)
-      4. Lưu backup vào JSONL file
-      5. Cập nhật status trong SQLite
+      1. Đánh dấu status = processing (tránh xử lý trùng)
+      2. Scrape nội dung (Module 2)
+      3. AI Summarize (Module 3) — có VRAM protection
+      4. Lưu vào MongoDB (Module 4)
+      5. Lưu backup vào JSONL file (theo ngày)
+      6. Cập nhật status done/failed
     
     → Nếu pipeline crash giữa chừng, bài đã xử lý vẫn an toàn trong DB.
     """
+    from datetime import date
     from module1_fetcher import update_status
     from module3_summarizer import summarize_single
     from module4_storage import save_articles
 
-    # Tạo thư mục nếu chưa có
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    # Tạo thư mục + file backup theo ngày
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, f"raw_articles_{date.today().isoformat()}.jsonl")
 
     total = len(items)
     success_count = 0
@@ -176,6 +187,9 @@ def process_pending_articles(items: list[dict], output_file="data/raw_articles.j
             url_hash = item["url_hash"]
 
             try:
+                # ── Bước 0: Đánh dấu đang xử lý (tránh pipeline khác pick lại) ──
+                update_status(url_hash, "processing")
+
                 # ── Bước 1: Scrape nội dung ──
                 scraped = scrape_article(url)
 

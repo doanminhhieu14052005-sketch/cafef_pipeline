@@ -59,8 +59,9 @@ def mark_seen(item: dict) -> None:
 
 def get_pending_urls(limit: int = 20) -> list[dict]:
     col = get_collection()
+    # Lấy cả "pending" lẫn "processing" (crash recovery)
     cursor = col.find(
-        {"status": "pending", "retry_count": {"$lt": 3}},
+        {"status": {"$in": ["pending", "processing"]}, "retry_count": {"$lt": 3}},
         {"url_hash": 1, "source_url": 1, "title": 1,
          "published_at": 1, "category": 1, "_id": 0}
     ).sort("created_at", -1).limit(limit)

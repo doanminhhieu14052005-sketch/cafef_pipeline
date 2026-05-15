@@ -54,6 +54,7 @@ def save_article(article: dict) -> bool:
                 "summary_json":  article.get("summary_json"),
                 "status":        article.get("status", "done"),
                 "scrape_method": article.get("method", ""),
+                "updated_at":    datetime.now(timezone.utc),
             }},
             upsert=True,
         )

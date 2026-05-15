@@ -6,6 +6,7 @@ Orchestrator: Điều phối toàn bộ pipeline
 """
 
 import logging
+from logging.handlers import RotatingFileHandler
 import schedule
 import time
 from datetime import datetime
@@ -20,7 +21,12 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler("pipeline.log", encoding="utf-8"),
+        RotatingFileHandler(
+            "pipeline.log",
+            maxBytes=5 * 1024 * 1024,   # 5 MB per file
+            backupCount=3,              # Giữ tối đa 3 file cũ
+            encoding="utf-8",
+        ),
     ],
 )
 logger = logging.getLogger("orchestrator")
@@ -29,22 +35,29 @@ logger = logging.getLogger("orchestrator")
 def run_pipeline() -> None:
     logger.info("=" * 50)
     logger.info(f"Pipeline started at {datetime.now()}")
+    start_time = time.time()
 
-    # Module 1: Fetch & dedup
-    new_urls = fetch_new_urls()
-    logger.info(f"M1: {len(new_urls)} new URLs queued")
+    try:
+        # Module 1: Fetch & dedup
+        new_urls = fetch_new_urls()
+        logger.info(f"M1: {len(new_urls)} new URLs queued")
 
-    # Lấy pending từ DB (bao gồm cả lần trước còn sót)
-    pending = get_pending_urls(limit=BATCH_SIZE)
-    if not pending:
-        logger.info("No pending URLs to process, exiting")
-        return
+        # Lấy pending từ DB (bao gồm cả lần trước còn sót)
+        pending = get_pending_urls(limit=BATCH_SIZE)
+        if not pending:
+            logger.info("No pending URLs to process, exiting")
+            return
 
-    # Streaming pipeline: scrape → summarize → save TỪNG BÀI
-    # (mỗi bài xong là lưu DB ngay, không chờ cả batch)
-    process_pending_articles(pending)
+        # Streaming pipeline: scrape → summarize → save TỪNG BÀI
+        # (mỗi bài xong là lưu DB ngay, không chờ cả batch)
+        process_pending_articles(pending)
 
-    logger.info("Pipeline completed")
+    except Exception as e:
+        logger.critical(f"💥 Pipeline crashed: {e}", exc_info=True)
+
+    finally:
+        elapsed = time.time() - start_time
+        logger.info(f"Pipeline completed in {elapsed:.1f}s")
 
 
 if __name__ == "__main__":
@@ -63,7 +76,10 @@ if __name__ == "__main__":
 
     logger.info(f"Scheduler started — pipeline sẽ chạy lúc: {', '.join(SCHEDULE_TIMES)}")
     logger.info("Press Ctrl+C to stop.")
-    while True:
-        schedule.run_pending()
-        time.sleep(30)
 
+    try:
+        while True:
+            schedule.run_pending()
+            time.sleep(30)
+    except KeyboardInterrupt:
+        logger.info("⏹️ Scheduler stopped by user (Ctrl+C)")

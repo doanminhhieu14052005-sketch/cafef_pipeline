@@ -10,7 +10,7 @@ import json
 import logging
 import re
 import time
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 import httpx
 from pydantic import BaseModel, ValidationError, field_validator
@@ -32,7 +32,7 @@ class ArticleSummary(BaseModel):
     summary: list[str]          # 3 gạch đầu dòng
     tickers: list[str]          # ["FPT", "HPG"] hoặc []
     impact: Literal["Positive", "Negative", "Neutral"]
-    key_metrics: dict[str, str] # {"Doanh thu": "1000 tỷ"} hoặc {}
+    key_metrics: dict[str, Any] # {"Doanh thu": "1000 tỷ"} hoặc {}
     sector: Optional[str] = None  # "Ngân hàng", "Bất động sản"...
 
     @field_validator("tickers")
