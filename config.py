@@ -4,14 +4,33 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # === CafeF ===
+# 6 chuyên mục — khớp key + api_id với repo research (News-driven-stock) để DB nhất quán.
+# LƯU Ý: 18831 thực chất là CHỨNG KHOÁN (trước đây key "doanh_nghiep" trỏ nhầm vào 18831).
+# Doanh nghiệp thật sự = 18836.
 CAFEF_CATEGORIES = {
     "vi_mo": {
         "url": "https://cafef.vn/vi-mo-dau-tu.chn",
         "api_id": "18833"
     },
+    "chung_khoan": {
+        "url": "https://cafef.vn/thi-truong-chung-khoan.chn",
+        "api_id": "18831"
+    },
     "doanh_nghiep": {
         "url": "https://cafef.vn/doanh-nghiep.chn",
-        "api_id": "18831"
+        "api_id": "18836"
+    },
+    "tai_chinh_nh": {
+        "url": "https://cafef.vn/tai-chinh-ngan-hang.chn",
+        "api_id": "18834"
+    },
+    "bat_dong_san": {
+        "url": "https://cafef.vn/bat-dong-san.chn",
+        "api_id": "18835"
+    },
+    "hang_hoa": {
+        "url": "https://cafef.vn/hang-hoa-nguyen-lieu.chn",
+        "api_id": "18839"
     }
 }
 
