@@ -20,6 +20,7 @@ from config import (
     REQUEST_DELAY, REQUEST_HEADERS, SCRAPE_DEPTH
 )
 from module4_storage import get_collection
+from utils import parse_published_at
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ def mark_seen(item: dict) -> None:
             "url_hash":     item["url_hash"],
             "source_url":   item["url"],
             "title":        item.get("title", ""),
-            "published_at": item.get("published_at", ""),
+            "published_at": parse_published_at(item.get("published_at")),
             "category":     item.get("category", ""),
             "raw_text":     "",
             "summary_json": None,
